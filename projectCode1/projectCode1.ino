@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------
 // Parameters that define what environment to render
 #define ENABLE_SEND_POS
-#define ENABLE_VIRTUAL_WALL
+// #define ENABLE_VIRTUAL_WALL
 // #define ENABLE_FEEDBACK
 
 // Includes
@@ -14,46 +14,38 @@
 // Pin declares
 int pwmPin = 5; // PWM output pin for motor 1
 int dirPin = 8; // direction output pin for motor 1
-int sensorPosPin = A2; // input pin for MR sensor
-int fsrPin = A3; // input pin for FSR sensor
+int pwmPin2 = 6; // PWM output pin for motor 1
+int dirPin2 = 7; // direction output pin for motor 1
 int encoderPinA = 2;
-int encoderPinB = 3;
-Encoder myEnc(encoderPinA, encoderPinB);
-long prev_Pos = -999;
-// long updatedPos  = -999;
-
-// Position tracking variables
-int updatedPos = 0;     // keeps track of the latest updated value of the MR sensor reading
-int rawPos = 0;         // current raw reading from MR sensor
-int lastRawPos = 0;     // last raw reading from MR sensor
-int lastLastRawPos = 0; // last last raw reading from MR sensor
-int flipNumber = 0;     // keeps track of the number of flips over the 180deg mark
-int tempOffset = 0;
-int rawDiff = 0;
-int lastRawDiff = 0;
-int rawOffset = 0;
-int lastRawOffset = 0;
-const int flipThresh = 700;  // threshold to determine whether or not a flip over the 180 degree mark occurred
-boolean flipped = false;
+int encoderPinB = 12;
+int encoderPin2A = 3;
+int encoderPin2B = 13;
+Encoder linkEnc(encoderPinA, encoderPinB);
+Encoder pullEnc(encoderPin2A, encoderPin2B);
+long prev_Pos_link = -999;
+long prev_Pos_pull = -999;
 
 // Kinematics variables
-double xh = 0;           // position of the handle [m]
-double theta_s = 0;      // Angle of the sector pulley in deg
-double xh_prev;          // Distance of the handle at previous time step
-double xh_prev2;
-double dxh;              // Velocity of the handle
-double dxh_prev;
-double dxh_prev2;
-double dxh_filt;         // Filtered velocity of the handle
-double dxh_filt_prev;
-double dxh_filt_prev2;
+double xh_link = 0;           // position of the paddle [m]
+double xh_link_prev;          // Distance of the paddle at previous time step
+double xh_link_prev2;
+double dxh_link;              // Velocity of the paddle
+double dxh_link_prev;
+double dxh__link_prev2;
+double dxh_link_filt;         // Filtered velocity of the paddle
+double dxh_link_filt_prev;
+double dxh_link_filt_prev2;
 
-//*****************************************************************
-//****************** Initialize Variables (START) *****************
-//*****************************************************************
-// Parameters & variables for wall and mass-spring-damper system
+double theta_pull = 0;           // angle of paddle [rad]
 
-// STUDENT CODE HERE
+// Dynamics variables
+double rc = 0.005;
+double rp = 0.025;
+double rs = 0.02;
+
+double ls = 0.064;
+double ll = 0.124;
+
 double x_wall = 0.005;
 double k_wall = 150;
 double rh = 0.089;    //[m]
@@ -69,15 +61,13 @@ double r_u = 0.002;
 
 int count_down = 0;
 
-//*****************************************************************
-//******************* Initialize Variables (END) ******************
-//*****************************************************************
-
 // Force output variables
 double force = 0;           // force at the handle
 double Tp = 0;              // torque of the motor pulley
 double duty = 0;            // duty cylce (between 0 and 255)
 unsigned int output = 0;    // output command to the motor
+double duty2 = 0;           // duty cylce (between 0 and 255)
+unsigned int output2 = 0;    // output command to the motor
 
 
 // --------------------------------------------------------------
