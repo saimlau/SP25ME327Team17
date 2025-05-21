@@ -51,6 +51,14 @@ void setup()
 // --------------------------------------------------------------
 void loop()
 {
+  if(Serial.available()){
+    String sD = Serial.readString();
+    sD.trim();
+    int i = sD.indexOf(",");
+    duty = sD.substring(0,i).toDouble();
+    duty2 = sD.substring(i+1).toDouble();
+  }
+
   long updatedPos = myEnc.read();
   long updatedPos2 = myEnc2.read();
   if (updatedPos != prev_Pos || updatedPos2 != prev_Pos2) {
@@ -62,10 +70,6 @@ void loop()
     prev_Pos = updatedPos;
     prev_Pos2 = updatedPos2;
   }
-  // if(Serial.available()){
-  //   String sD = Serial.readString();
-  //   duty = sD.toDouble();
-  // }
 
   counter -= 1;
   if(counter==0) {
