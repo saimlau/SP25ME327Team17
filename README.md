@@ -1,3 +1,3 @@
 # SP25ME327Team17
 
-![linkageTraj](https://github.com/user-attachments/assets/d975ce8e-7bf9-4cf2-9661-d761d70a28ad)
+![linkageTraj](https://github.com/user-attachments/assets/44502fa0-8092-4c93-b1d6-0d512f1e8690)
