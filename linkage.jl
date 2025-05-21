@@ -35,7 +35,7 @@ anim = @animate for i ∈ eachindex(θss)
     plot(sol[:,2],sol[:,1], aspect_ratio = 1, framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12,
                linewidth=2, label="trajectory")
     scatter!([sol[i,2]],[sol[i,1]], color="red", label="paddle")
-    title!("θs=$(round(rad2deg(θss[i]),sigdigits=3)) deg, (x,y)=($(round(rad2deg(sol[i,1]),sigdigits=3)), $(round(rad2deg(sol[i,2]),sigdigits=3)))")
+    title!("θs=$(round(rad2deg(θss[i]),sigdigits=3)) deg, (x,y)=($(round((sol[i,1]),sigdigits=3)), $(round((sol[i,2]),sigdigits=3)))")
     xlabel!("y")
     ylabel!("x")
 end
