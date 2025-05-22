@@ -47,6 +47,14 @@ Bricks brks;
 Player usr;
 
 boolean started = true;
+float mb = 1;
+float dxb = 0.05;
+float dyb = 0.05;
+float dxb_prev = 0;
+float dyb_prev = 0;
+float ddxb_prev = 0;
+float ddyb_prev = 0;
+long time_prev;
 //*****************************************************************
 //******************* Initialize Variables (END) ******************
 //*****************************************************************
@@ -61,15 +69,13 @@ void setup () {
   // List all the available serial ports
   //println(Serial.list());
   // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
-  myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
+  //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
 
   // A serialEvent() is generated when a newline character is received :
-  myPort.bufferUntil('\n');
+  //myPort.bufferUntil('\n');
   background(0);      // set inital background:
   yp_p = height*9/10;
   yp_init = p2r(yp_p,"y");
-  usr = new Player(xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
-  brks = new Bricks(xMin+brickWidth, xMax-brickWidth, yMax/8+brickWidth/2, yMax*7/10-brickWidth/2, 0.3, brickWidth);
   
   yb = yp_init-0.03;
   rb_p = r2p(rb, "y");
@@ -78,6 +84,10 @@ void setup () {
   hp_p = r2p(hp,"y");
   
   brickWidth_p = r2p(brickWidth,"y");
+  
+  usr = new Player(xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
+  brks = new Bricks(xMin+brickWidth, xMax-brickWidth, yMax/8+brickWidth/2, yMax*7/10-brickWidth/2, 0.2, brickWidth);
+  time_prev = System.nanoTime();
 }
 void draw () {
   if(started){
@@ -99,8 +109,12 @@ void draw () {
   rect(-wp_p/2, -hp_p/2, wp_p, hp_p); // Draw paddle
   popMatrix(); // Restore the previous state
   
+  fill(144, 238, 144);
+  stroke(27, 252, 6);
   ellipse(xb_p, yb_p, 2*rb_p, 2*rb_p);
   
+  fill(255);
+  stroke(255,92,0);
   for(int i = 0; i<brickLocations.size(); i++){
     float[] loc = brickLocations.get(i);
     float[] loc_p = new float[] {r2p(loc[0],"x"), r2p(loc[1],"y")};
@@ -147,6 +161,33 @@ void serialEvent (Serial myPort) {
 }
 
 void updateDynamics(){
+  double dt = (System.nanoTime()-time_prev)/1000000000.0;
+  time_prev = System.nanoTime();
+  float[] force = new float[] {0,0};
+  
+  
+  
+  dxb += (force[0]/mb + ddxb_prev)/2*dt;
+  dyb += (force[1]/mb + ddyb_prev)/2*dt;
+  
+  int hitU = usr.checkCollision(xb,yb,rb);
+  reflectFromHit(hitU, 1);
+  
+  int hitB = brks.checkCollision(xb,yb,rb);
+  if(hitB!=0){usr.scored();}
+  reflectFromHit(hitB, 1);
+  
+  int hitW = checkWallColllision();
+  reflectFromHit(hitW, -1);
+  
+  
+  xb += (dxb + dxb_prev)/2*dt;
+  yb += (dyb + dyb_prev)/2*dt;
+  
+  dxb_prev = dxb;
+  dyb_prev = dyb;
+  ddxb_prev = force[0]/mb;
+  ddyb_prev = force[1]/mb;
 }
 
 float r2p(float value, String dir){
@@ -162,5 +203,44 @@ float p2r(float value, String dir){
     return map(value, 0, width, xMin, xMax);
   } else {
     return map(value, 0, height, yMin, yMax);
+  }
+}
+
+int checkWallColllision(){
+  if(xb+rb>=xMax) {return (int) 3;}
+  if(xb-rb<=xMin) {return (int) 1;}
+  if(yb+rb>=yMax) {return (int) 2;}
+  if(yb-rb<=yMin) {return (int) 4;}
+  return 0;
+}
+
+void reflectFromHit(int hit, int dir){
+  switch(hit) {
+    case 1:
+      if (dxb*Math.signum(dir)>0){
+        dxb = -dxb;
+        dxb_prev = -dxb_prev;
+      }
+      break;
+    case 2:
+      if (dyb*Math.signum(dir)<0) {
+        dyb = -dyb;
+        dyb_prev = -dyb_prev;
+      }
+      break;
+    case 3:
+      if (dxb*Math.signum(dir)<0){
+        dxb = -dxb;
+        dxb_prev = -dxb_prev;
+      }
+      break;
+    case 4:
+      if (dyb*Math.signum(dir)>0) {
+        dyb = -dyb;
+        dyb_prev = -dyb_prev;
+      }
+      break;
+    default:
+      break;
   }
 }

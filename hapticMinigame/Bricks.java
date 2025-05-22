@@ -17,6 +17,7 @@ public class Bricks {
     boolean[][] brickMat;
     int[][] brickEffects;
     ArrayList<float[]> locations;
+    ArrayList<int[]> locID;
     float brickP;
     Random rnd;
 
@@ -53,10 +54,12 @@ public class Bricks {
 
     public void updateLocations(){
         locations = new ArrayList<>();
+        locID = new ArrayList<>();
         for(int i=0; i<nY; i++){
             for(int j=0; j<nX; j++){
                 if(brickMat[i][j]){
                     locations.add(new float[] {xbMin+j*dX, ybMin+i*dY});
+                    locID.add(new int[] {i,j});
                 }
             }
         }
@@ -71,6 +74,18 @@ public class Bricks {
         brickEffects[i][j] = 0;
         this.updateLocations();
         return temp;
+    }
+    public int checkCollision(float xb, float yb, float rb){
+        for(int i = 0; i<locations.size(); i++){
+          float[] loc = locations.get(i);
+          int temp = circleRect(xb, yb, rb, loc[0]-width/2, loc[1]-width/2, width, width);
+          if (temp!=0) {
+            int[] ID = locID.get(i);
+            int eff = this.breakBrick(ID[0],ID[1]);
+            return temp ;
+          }
+        }
+        return 0;
     }
 
     private int circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh) {
