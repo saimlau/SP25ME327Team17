@@ -26,44 +26,37 @@ long prev_Pos_link = -999;
 long prev_Pos_pull = -999;
 
 // Kinematics variables
-double xh_link = 0;           // position of the paddle [m]
-double xh_link_prev;          // Distance of the paddle at previous time step
-double xh_link_prev2;
-double dxh_link;              // Velocity of the paddle
-double dxh_link_prev;
-double dxh__link_prev2;
-double dxh_link_filt;         // Filtered velocity of the paddle
-double dxh_link_filt_prev;
-double dxh_link_filt_prev2;
+double xp = 0;           // position of the paddle [m]
+double xp_prev;          // Distance of the paddle at previous time step
+double xp_prev2;
+double dxp;              // Velocity of the paddle
+double dxp_prev;
+double dxp_prev2;
+double dxp_filt;         // Filtered velocity of the paddle
+double dxp_filt_prev;
+double dxp_filt_prev2;
 
-double theta_pull = 0;           // angle of paddle [rad]
+double thp = 0;           // angle of paddle [rad]
 
 // Dynamics variables
-double rc = 0.005;
-double rp = 0.025;
-double rs = 0.02;
+double Rcap = 0.005;
+double Rp = 0.025;
+double Rs = 0.048;
+double L0 = 0.14;
 
-double ls = 0.064;
-double ll = 0.124;
+double Rs = 0.04;
+double Lb = 0.04;
+double Ls = 0.064;
+double Ll = 0.124;
 
-double x_wall = 0.005;
-double k_wall = 150;
-double rh = 0.089;    //[m]
-double rp = 0.005;   //[m]
-double rs = 0.074;   //[m] 
-double m = 2;
-double b = 1;
-double k_sp = 300;
-double k_user = 1000;
-double dt = 0.001;
-double r_m = 0.002;
-double r_u = 0.002;
+
 
 int count_down = 0;
 
 // Force output variables
 double force = 0;           // force at the handle
 double Tp = 0;              // torque of the motor pulley
+double Tp2 = 0;
 double duty = 0;            // duty cylce (between 0 and 255)
 unsigned int output = 0;    // output command to the motor
 double duty2 = 0;           // duty cylce (between 0 and 255)
@@ -104,96 +97,65 @@ void setup()
 // --------------------------------------------------------------
 void loop()
 {
+  #ifdef ENABLE_FEEDBACK
+    if(Serial.available()){
+      String sD = Serial.readString();
+      sD.trim();
+      int i = sD.indexOf(",");
+      force = sD.substring(0,i).toDouble();
+      Tp2 = sD.substring(i+1).toDouble();
+    }
+  #endif
   
-  //*************************************************************
-  //*** Section 1. Compute position in counts                 ***  
-  //*************************************************************
-
   long updatedPos = myEnc.read();
-  // if (updatedPos != prev_Pos) {
-  //   prev_Pos = updatedPos;
-  //   Serial.println(updatedPos);
-  // }
- 
-  //*****************************************************************
-  //************ Compute Position in Meters (START) *****************
-  //*****************************************************************
+  long updatedPos2 = myEnc2.read();
   
-  // STUDENT CODE HERE
-  double ts = (updatedPos*2*PI/2000)*rp/rs;
-  xh = ts*rh;
-  
-  //*****************************************************************
-  //**************** Compute Position in Meters (END) ***************
-  //*****************************************************************
+  // Link pos
+  double ths = (updatedPos*2*PI/2000);
+  xp = L0*sin(ths)/(1+cos(ths));
 
   // Calculate velocity with loop time estimation
-  dxh = (double)(xh - xh_prev) / 0.001;
+  dxp = (double)(xp - xp_prev) / 0.001;
 
   // Calculate the filtered velocity of the handle using an infinite impulse response filter
-  dxh_filt = .9*dxh + 0.1*dxh_prev; 
+  dxp_filt = .9*dxp + 0.1*dxp_prev; 
     
   // Record the position and velocity
-  xh_prev2 = xh_prev;
-  xh_prev = xh;
+  xp_prev2 = xp_prev;
+  xp_prev = xp;
   
-  dxh_prev2 = dxh_prev;
-  dxh_prev = dxh;
+  dxp_prev2 = dxp_prev;
+  dxp_prev = dxp;
   
-  dxh_filt_prev2 = dxh_filt_prev;
-  dxh_filt_prev = dxh_filt;
-  
-  //*************************************************************
-  //****** Assign a Motor Output Force in Newtons (START) *******  
-  //*************************************************************
-  //*************************************************************
-  //******************* Rendering Algorithms ********************
-  //*************************************************************
+  dxp_filt_prev2 = dxp_filt_prev;
+  dxp_filt_prev = dxp_filt;
+
+  // Drum pos
+  double ths2 = (updatedPos2*2*PI/2000);
+  thp = Rcap/Rp*(ths2-xp/Rcap);
   
   #ifdef ENABLE_SEND_POS
-    // STUDENT CODE HERE
-    Serial.println(xh, 5);
+    Serial.print(xp, 5);
+    Serial.print(",");
+    Serial.print(thp,5);
   #endif
 
   #ifdef ENABLE_VIRTUAL_WALL
-    // STUDENT CODE HERE
-    if(xh+r_u>=x_wall){
-      force = -k_wall*(xh+r_u-x_wall);
+    double k_wall = 300;
+    double x_wall = 0.05;
+    if(xp>=x_wall){
+      force = -k_wall*(xp-x_wall);
     } else {
       force = 0;
     }
   #endif
 
-  #ifdef ENABLE_FEEDBACK
-    // STUDENT CODE HERE
-    force = 0;
-    if (Serial.available() > 0) {
-      String str = Serial.readString();
-      str.trim();
-      if(str==str){
-        count_down = 0; // reset vibration timer
-        force = -str.toFloat();
-      }
-    }
-    // if(count_down){
-    //   force = -20*dxh_filt;  // vibrate
-    //   count_down -= 1;
-    // }
-  #endif
-
   // Calculate the motor torque: Tp = ?
-  // STUDENT CODE HERE
-  Tp = rh*rp/rs*force;
-
-  //*************************************************************
-  //******* Assign a Motor Output Force in Newtons (END) ********  
-  //*************************************************************
-  //*************************************************************
-
+  Tp = L0/(1+cos(ths))*force;
 
   
   //*************************************************************
-  //************ Force output (do not change) *******************
+  //************        Force output          *******************
   //*************************************************************
 
   // Determine correct direction for motor torque
@@ -202,9 +164,15 @@ void loop()
   } else {
     digitalWrite(dirPin, LOW);
   }
+  if(Tp2 > 0) { 
+    digitalWrite(dirPin2, HIGH);
+  } else {
+    digitalWrite(dirPin2, LOW);
+  }
 
   // Compute the duty cycle required to generate Tp (torque at the motor pulley)
   duty = sqrt(abs(Tp)/0.04526300208292487);
+  duty2 = sqrt(abs(Tp2)/0.04526300208292487);
 
   // Make sure the duty cycle is between 0 and 100%
   if (duty > 1) {            
@@ -212,8 +180,16 @@ void loop()
   } else if (duty < 0) { 
     duty = 0;
   }  
+  if (duty2 > 1) {            
+    duty2 = 1;
+  } else if (duty2 < 0) { 
+    duty2 = 0;
+  }  
+  // Serial.println(duty);
   output = (int)(duty* 255);   // convert duty cycle to output signal
   analogWrite(pwmPin,output);  // output the signal
+  output2 = (int)(duty2* 255);   // convert duty cycle to output signal
+  analogWrite(pwmPin2,output2);  // output the signal
 }
 
 // --------------------------------------------------------------

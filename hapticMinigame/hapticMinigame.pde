@@ -7,6 +7,7 @@ import processing.serial.*;
 import java.util.Random;
 import java.lang.Math;
 import java.util.ArrayList;
+import java.util.Iterator;
 import team17Pkg.Player;
 import team17Pkg.Bricks;
 
@@ -16,93 +17,107 @@ Serial myPort;        // The serial port
 //****************** Initialize Variables (START) *****************
 //*****************************************************************
 
-// STUDENT CODE HERE
-float xh = 0;
-float yh;
-float pos_x = 0;
-float pos_y;
-float xh_min = -0.08066;
-float xh_max = 0.06323;
-float r_b = 0.002;
-float r_b_p;
-float theta = 0;
+float xp_init = 0;
+float yp_init;
+float thd_init = 0;
+float xb = 0;
+float yb;
+float rb = 0.005;
+float wp = 0.05;
+float hp = 0.016;
+float xMin = -0.1-wp/2;
+float xMax = 0.1+wp/2;
+float yMin = 0;
+float yMax = xMax-xMin;
 
-float w_brick = 0.006;
-float w_brick_p;
-float x_brick_max;
-float x_brick_min;
-float y_brick_max;
-float y_brick_min;
-float x_brick_max_p;
-float x_brick_min_p;
-float y_brick_max_p;
-float y_brick_min_p;
+float xp_p;
+float yp_p;
+float xb_p;
+float yb_p;
+float rb_p;
+float wp_p;
+float hp_p;
+
+float brickWidth = 0.01;
+float brickWidth_p;
+
+ArrayList<float[]> brickLocations;
 
 Bricks brks;
 Player usr;
+
+boolean started = true;
 //*****************************************************************
 //******************* Initialize Variables (END) ******************
 //*****************************************************************
 
 
+
+
 void setup () {
   // set the window size:
-  size(1200, 800); 
+  size(1200, 1200); 
 
   // List all the available serial ports
   //println(Serial.list());
-  // Check the listed serial ports in your machine
-  // and use the correct index number in Serial.list()[].
+  // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
   //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
 
   // A serialEvent() is generated when a newline character is received :
   //myPort.bufferUntil('\n');
   background(0);      // set inital background:
-  r_b_p = map(r_b, 0., xh_max-xh_min, 0., width);
-  w_brick_p = map(w_brick, 0., xh_max-xh_min, 0., width);
-  //pos_wall = map(x_wall, xh_min, xh_max, 0, width);
-  //pos_mass = map(x_mass, xh_min, xh_max, 0, width);
+  yp_p = height*9/10;
+  yp_init = p2r(yp_p,"y");
+  usr = new Player(xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
+  brks = new Bricks(xMin+brickWidth, xMax-brickWidth, yMax/8+brickWidth/2, yMax*7/10-brickWidth/2, 0.3, brickWidth);
   
+  yb = yp_init-0.03;
+  rb_p = r2p(rb, "y");
   
+  wp_p = r2p(wp,"y");
+  hp_p = r2p(hp,"y");
+  
+  brickWidth_p = r2p(brickWidth,"y");
 }
 void draw () {
-  // everything happens in the serialEvent()
-  background(0); //uncomment if you want to control a ball
+  if(started){
+    updateDynamics();
+  }
+  xp_p = r2p(usr.getX(),"x");
+  brickLocations = brks.getLocations();
+  xb_p = r2p(xb,"x");
+  yb_p = r2p(yb,"y");
+  
+  background(0);
   stroke(127, 34, 255);     //stroke color
   strokeWeight(4);        //stroke wider
+  fill(255);
   
-  //*****************************************************************
-  //***************** Draw Objects in Scene (START) *****************
-  //*****************************************************************
-
-  // STUDENT CODE HERE
-    
-  // (1) draw an ellipse (or other shape) to represent user position
-    // HINT: the ellipse (or other shape) should not penetrate the mass object
-  //if(pos+r_u<=pos_mass-r_m){
-  //  ellipse(pos, height/2, 2*r_u, 2*r_u);
-  //} else {
-  //  ellipse(pos_mass-r_u-r_m, height/2, 2*r_u, 2*r_u);
-  //}
-  //// (2) draw an ellipse (or other shape) to represent the mass position
-  //ellipse(pos_mass, height/2, 2*r_m, 2*r_m);
-  //// (3) draw the wall where the spring & damper are fixed (i.e., at 0.5 cm)
-  //line(pos_wall, 0, pos_wall, height);
-  //// (4) draw a line between the fixed wall in (3) and the moving mass
-  //line(pos_wall, height/2, pos_mass, height/2);
-
-  //*****************************************************************
-  //****************** Draw Objects in Scene (END) ******************
-  //*****************************************************************
+  pushMatrix(); // Save the current state
+  translate(xp_p, yp_p); // Translate to the center
+  rotate(-usr.getTh()); // Rotate around the center
+  rect(-wp_p/2, -hp_p/2, wp_p, hp_p); // Draw paddle
+  popMatrix(); // Restore the previous state
+  
+  ellipse(xb_p, yb_p, 2*rb_p, 2*rb_p);
+  
+  for(int i = 0; i<brickLocations.size(); i++){
+    float[] loc = brickLocations.get(i);
+    float[] loc_p = new float[] {r2p(loc[0],"x"), r2p(loc[1],"y")};
+    rect(loc_p[0]-brickWidth_p/2, loc_p[1]-brickWidth_p/2, brickWidth_p, brickWidth_p);
+  }
+  
+  if(!started){
+    noStroke();
+    fill(150, 120);
+    rect(0,0,width,height);
+  }
+  textSize(30);
+  fill(255);
+  text("Score: "+usr.getScore(), 21, 40, 300, 60);  // Text wraps within text box
 }
 
-void serialEvent (Serial myPort) {
-  //*****************************************************************
-  //** Read in Handle and Mass Positions from Serial Port (START) ***
-  //*****************************************************************
-  
-  // STUDENT CODE HERE
-  
+void serialEvent (Serial myPort) {  
   // (1) read the input string
     // HINT: use myPort.readStringUntil() with the appropriate argument
   String msg = myPort.readStringUntil('\n');
@@ -124,13 +139,28 @@ void serialEvent (Serial myPort) {
   //     otherwise: map the new value to the screen width
   //     & update previous value variable
   if(temp1 == temp1){
-    xh = temp1;
-    pos_x = map(xh, xh_min, xh_max, 0, width);
+    usr.updateX(temp1);
   }
   if(temp2 == temp2){
-    theta = temp2;
+    usr.updateTh(temp2);
   }
-  //*****************************************************************
-  //**** Read in Handle and Mass Positions from Serial Port (END) ***
-  //*****************************************************************
+}
+
+void updateDynamics(){
+}
+
+float r2p(float value, String dir){
+  if(dir=="x") {
+    return map(value, xMin, xMax, 0, width);
+  } else {
+    return map(value, yMin, yMax, 0, height);
+  }
+}
+
+float p2r(float value, String dir){
+  if(dir=="x") {
+    return map(value, 0, width, xMin, xMax);
+  } else {
+    return map(value, 0, height, yMin, yMax);
+  }
 }

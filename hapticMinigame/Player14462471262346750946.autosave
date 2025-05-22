@@ -2,46 +2,22 @@ package team17Pkg;
 
 public class Player {
     float xp;
-    float yp;
     float xMin;
     float xMax;
-    int score = 0;
-    float thd = 0;
-    float wp;
-    float hp;
+    float score = 0;
+    float theta = 0;
 
-    public Player(float xp, float yp, float thd, float wp, float hp, float xMin, float xMax){
-        this.updateX(xp);
-        this.updateTh(thd);
-        this.yp = yp;
-        this.wp = wp;
-        this.hp = hp;
-        this.xMin = xMin;
-        this.xMax = xMax;
+    public Player(float xp, float theta, float xh_min, float xh_max){
+        this.update(xp, theta);
+        this.xMin = xh_min;
+        this.xMax = xh_max;
     }
     public void reset(){
         score = 0;
     }
-    public void scored(){
-        score ++;
-    }
-    public int getScore(){
-        return this.score;
-    }
-    public void updateX(float xp){
+    public void update(float xp, float theta){
         this.xp = xp;
-    }
-    public void updateTh(float thd){
-        this.thd = thd;
-    }
-    public float getX(){
-        return xp;
-    }
-    public float getTh(){
-        return thd;
-    }
-    public int checkCollision(float xb, float yb, float rb){
-        return circleRect(xb, yb, rb, this.xp-this.wp/2, this.yp-this.hp/2, this.wp, this.hp);
+        this.theta = theta;
     }
 
     private int circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh) {

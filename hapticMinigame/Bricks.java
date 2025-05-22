@@ -20,11 +20,12 @@ public class Bricks {
     float brickP;
     Random rnd;
 
-    public Bricks(float xbMin, float xbMax, float ybMin, float ybMax, float brickProb){
+    public Bricks(float xbMin, float xbMax, float ybMin, float ybMax, float brickProb, float brickWidth){
         this.xbMin = xbMin;
         this.xbMax = xbMax;
         this.ybMin = ybMin;
         this.ybMax = ybMax;
+        this.width = brickWidth;
         this.nX = Math.round((xbMax-xbMin)/width);
         this.nY = Math.round((ybMax-ybMin)/width);
         this.dX = (xbMax-xbMin)/(nX-1);
@@ -59,6 +60,9 @@ public class Bricks {
                 }
             }
         }
+    }
+    public ArrayList<float[]> getLocations(){
+        return this.locations;
     }
 
     public int breakBrick(int i, int j){
