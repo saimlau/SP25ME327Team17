@@ -61,10 +61,10 @@ void setup () {
   // List all the available serial ports
   //println(Serial.list());
   // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
-  //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
+  myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
 
   // A serialEvent() is generated when a newline character is received :
-  //myPort.bufferUntil('\n');
+  myPort.bufferUntil('\n');
   background(0);      // set inital background:
   yp_p = height*9/10;
   yp_init = p2r(yp_p,"y");

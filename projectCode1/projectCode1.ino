@@ -44,7 +44,6 @@ double Rp = 0.025;
 double Rs = 0.048;
 double L0 = 0.14;
 
-double Rs = 0.04;
 double Lb = 0.04;
 double Ls = 0.064;
 double Ll = 0.124;
@@ -73,22 +72,19 @@ void setup()
   
   // Set PWM frequency 
   setPwmFrequency(pwmPin,1); 
-  
-  // Input pins
-  pinMode(sensorPosPin, INPUT); // set MR sensor pin to be an input
-  pinMode(fsrPin, INPUT);       // set FSR sensor pin to be an input
+  setPwmFrequency(pwmPin2,8); 
 
   // Output pins
   pinMode(pwmPin, OUTPUT);  // PWM pin for motor A
   pinMode(dirPin, OUTPUT);  // dir pin for motor A
+  pinMode(pwmPin2, OUTPUT);  // PWM pin for motor B
+  pinMode(dirPin2, OUTPUT);  // dir pin for motor B
   
   // Initialize motor 
   analogWrite(pwmPin, 0);     // set to not be spinning (0/255)
   digitalWrite(dirPin, LOW);  // set direction
-  
-  // Initialize position valiables
-  lastLastRawPos = analogRead(sensorPosPin);
-  lastRawPos = analogRead(sensorPosPin);
+  analogWrite(pwmPin2, 0);     // set to not be spinning (0/255)
+  digitalWrite(dirPin2, LOW);  // set direction
 }
 
 
@@ -107,11 +103,11 @@ void loop()
     }
   #endif
   
-  long updatedPos = myEnc.read();
-  long updatedPos2 = myEnc2.read();
+  long updatedPos = linkEnc.read();
+  long updatedPos2 = pullEnc.read();
   
   // Link pos
-  double ths = (updatedPos*2*PI/2000);
+  double ths = (updatedPos*2*PI/2000)*Rcap/Rs;
   xp = L0*sin(ths)/(1+cos(ths));
 
   // Calculate velocity with loop time estimation
@@ -137,7 +133,7 @@ void loop()
   #ifdef ENABLE_SEND_POS
     Serial.print(xp, 5);
     Serial.print(",");
-    Serial.print(thp,5);
+    Serial.println(thp,5);
   #endif
 
   #ifdef ENABLE_VIRTUAL_WALL
