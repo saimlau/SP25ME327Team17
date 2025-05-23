@@ -8,8 +8,14 @@ import java.util.Random;
 import java.lang.Math;
 import java.util.ArrayList;
 import java.util.Iterator;
-import team17Pkg.Player;
-import team17Pkg.Bricks;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import team17Pkg.*;
 
 Serial myPort;        // The serial port
 
@@ -45,8 +51,9 @@ ArrayList<float[]> brickLocations;
 
 Bricks brks;
 Player usr;
+LeaderBoard ledBrd;
 
-boolean started = true;
+boolean started = false;
 float mb = 1;
 float dxb = 0.05;
 float dyb = 0.05;
@@ -54,7 +61,16 @@ float dxb_prev = 0;
 float dyb_prev = 0;
 float ddxb_prev = 0;
 float ddyb_prev = 0;
+int eff = 0;
 long time_prev;
+String ledBrdFilename = "ledbrd.txt";
+
+int buttonX_p;
+int buttonY_p;
+int buttonW_p;
+int buttonH_p;
+
+TEXTBOX nameInput;
 //*****************************************************************
 //******************* Initialize Variables (END) ******************
 //*****************************************************************
@@ -85,10 +101,59 @@ void setup () {
   
   brickWidth_p = r2p(brickWidth,"y");
   
-  usr = new Player(xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
+  buttonW_p = width/5;
+  buttonH_p = height/12;
+  buttonX_p = (width-buttonW_p)/2;
+  buttonY_p = (width-buttonH_p)/2;
+  
+  nameInput = new TEXTBOX();
+  nameInput.W = buttonW_p*7/6;
+  nameInput.H = 35;
+  nameInput.X = (width-nameInput.W)/2;
+  nameInput.Y = buttonY_p-nameInput.H-30;
+  
+  usr = new Player("Testing123", xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
   brks = new Bricks(xMin+brickWidth, xMax-brickWidth, yMax/8+brickWidth/2, yMax*7/10-brickWidth/2, 0.2, brickWidth);
+  
+  String[] lines = loadStrings(ledBrdFilename);
+  ledBrd = new LeaderBoard(lines);  // initiate leader board, reads file if previous save exists
+  
   time_prev = System.nanoTime();
 }
+
+void startGame(){
+  String name = nameInput.Text;
+  if(name.equals("")){
+    name = "Unknown";
+  }
+  usr = new Player(name, xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
+  time_prev = System.nanoTime();
+  started = true;
+}
+
+void mousePressed() {
+  if(!started){
+    if (overButton()) {
+      startGame();
+    }
+  }
+  nameInput.PRESSED(mouseX, mouseY);
+}
+void keyPressed(){
+  if(nameInput.KEYPRESSED(key, keyCode)){
+    startGame();
+  }
+}
+
+boolean overButton(){
+  if (mouseX >= buttonX_p && mouseX <= buttonX_p+buttonW_p && 
+      mouseY >= buttonY_p && mouseY <= buttonY_p+buttonH_p) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void draw () {
   if(started){
     updateDynamics();
@@ -125,10 +190,36 @@ void draw () {
     noStroke();
     fill(150, 120);
     rect(0,0,width,height);
+    
+    fill(83, 86, 90, 150);
+    stroke(140, 21, 21);  // Cardinal red
+    int h_temp = ledBrd.getNum()*45 + 60;
+    rect(870,40,300,h_temp,30,30,30,30);
+    fill(255);
+    textSize(30);
+    textAlign(CENTER, CENTER);
+    text("Leaderboard", 870, 40, 300, 45);
+    textAlign(LEFT, TOP);
+    text(ledBrd.getStr(true), 900, 93, 270, h_temp-60);
+    
+    stroke(0);
+    if (overButton()) {
+      fill(144, 238, 144);
+    } else {
+      fill(0, 100, 0);
+    }
+    rect(buttonX_p,buttonY_p,buttonW_p,buttonH_p,10,10,10,10);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    text("Start",buttonX_p,buttonY_p,buttonW_p,buttonH_p);
+    
+    textAlign(CENTER, CENTER);
+    nameInput.DRAW();
   }
   textSize(30);
   fill(255);
-  text("Score: "+usr.getScore(), 21, 40, 300, 60);  // Text wraps within text box
+  textAlign(LEFT,CENTER);
+  text("Score: "+usr.getScore(), 21, 40, 300, 30);  // Text wraps within text box
 }
 
 void serialEvent (Serial myPort) {  
@@ -160,6 +251,10 @@ void serialEvent (Serial myPort) {
   }
 }
 
+void stop() {
+  return;
+} 
+
 void updateDynamics(){
   double dt = (System.nanoTime()-time_prev)/1000000000.0;
   time_prev = System.nanoTime();
@@ -173,11 +268,16 @@ void updateDynamics(){
   int hitU = usr.checkCollision(xb,yb,rb);
   reflectFromHit(hitU, 1);
   
-  int hitB = brks.checkCollision(xb,yb,rb);
-  if(hitB!=0){usr.scored();}
-  reflectFromHit(hitB, 1);
+  int[] hitB = brks.checkCollision(xb,yb,rb);
+  if(reflectFromHit(hitB[0], 1)){
+    usr.scored();
+    eff = brks.breakBrick(hitB[1],hitB[2]);
+  }
   
   int hitW = checkWallColllision();
+  if(hitW==2){
+    gameOver();
+  }
   reflectFromHit(hitW, -1);
   
   
@@ -214,33 +314,55 @@ int checkWallColllision(){
   return 0;
 }
 
-void reflectFromHit(int hit, int dir){
+void gameOver(){
+  started = false;
+  brks.reGenerate();
+  ledBrd.recordScore(usr.getName(), usr.getScore());
+  String[] list = split(ledBrd.getStr(false), '\n');
+  saveStrings(ledBrdFilename, list);
+  xb = 0;
+  yb = yp_init-0.03;
+  dxb = 0.05;
+  dyb = 0.05;
+  dxb_prev = 0;
+  dyb_prev = 0;
+  ddxb_prev = 0;
+  ddyb_prev = 0;
+  eff = 0;
+}
+
+boolean reflectFromHit(int hit, int dir){
   switch(hit) {
     case 1:
       if (dxb*Math.signum(dir)>0){
         dxb = -dxb;
         dxb_prev = -dxb_prev;
+        return true;
       }
       break;
     case 2:
       if (dyb*Math.signum(dir)<0) {
         dyb = -dyb;
         dyb_prev = -dyb_prev;
+        return true;
       }
       break;
     case 3:
       if (dxb*Math.signum(dir)<0){
         dxb = -dxb;
         dxb_prev = -dxb_prev;
+        return true;
       }
       break;
     case 4:
       if (dyb*Math.signum(dir)>0) {
         dyb = -dyb;
         dyb_prev = -dyb_prev;
+        return true;
       }
       break;
     default:
       break;
   }
+  return false;
 }

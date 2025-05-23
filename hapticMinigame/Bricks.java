@@ -45,7 +45,7 @@ public class Bricks {
                 float temp = rnd.nextFloat();
                 if(temp<=this.brickP){
                     brickMat[i][j] = true;
-                    brickEffects[i][j] = rnd.nextInt(5);
+                    brickEffects[i][j] = rnd.nextInt(4);
                 }
             }
         }
@@ -75,17 +75,16 @@ public class Bricks {
         this.updateLocations();
         return temp;
     }
-    public int checkCollision(float xb, float yb, float rb){
+    public int[] checkCollision(float xb, float yb, float rb){
         for(int i = 0; i<locations.size(); i++){
           float[] loc = locations.get(i);
           int temp = circleRect(xb, yb, rb, loc[0]-width/2, loc[1]-width/2, width, width);
           if (temp!=0) {
             int[] ID = locID.get(i);
-            int eff = this.breakBrick(ID[0],ID[1]);
-            return temp ;
+            return new int[] {temp, ID[0], ID[1]};
           }
         }
-        return 0;
+        return new int[] {0,0,0};
     }
 
     private int circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh) {

@@ -9,8 +9,9 @@ public class Player {
     float thd = 0;
     float wp;
     float hp;
+    String name;
 
-    public Player(float xp, float yp, float thd, float wp, float hp, float xMin, float xMax){
+    public Player(String name, float xp, float yp, float thd, float wp, float hp, float xMin, float xMax){
         this.updateX(xp);
         this.updateTh(thd);
         this.yp = yp;
@@ -18,12 +19,16 @@ public class Player {
         this.hp = hp;
         this.xMin = xMin;
         this.xMax = xMax;
+        this.name = name;
     }
     public void reset(){
         score = 0;
     }
     public void scored(){
         score ++;
+    }
+    public String getName(){
+        return this.name;
     }
     public int getScore(){
         return this.score;
