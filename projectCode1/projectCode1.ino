@@ -41,7 +41,7 @@ double thp = 0;           // angle of paddle [rad]
 // Dynamics variables
 double Rcap = 0.005;
 double Rp = 0.025;
-double Rs = 0.048;
+double Rs = 0.04;
 double L0 = 0.14;
 
 double Lb = 0.04;
@@ -147,8 +147,8 @@ void loop()
   #endif
 
   // Calculate the motor torque: Tp = ?
-  Tp = L0/(1+cos(ths))*force/0.04*0.005;
-  Tp2 = Tp2/0.05*0.005;
+  Tp = L0/(1+cos(ths))*force/Rs*Rcap;
+  Tp2 = Tp2/Rp*Rcap;
 
   
   //*************************************************************
