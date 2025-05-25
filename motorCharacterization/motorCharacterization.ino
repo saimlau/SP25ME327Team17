@@ -58,7 +58,7 @@ void loop()
     duty = sD.substring(0,i).toDouble();
     duty2 = sD.substring(i+1).toDouble();
   }
-
+  delay(1);
   long updatedPos = myEnc.read();
   long updatedPos2 = myEnc2.read();
   if (updatedPos != prev_Pos || updatedPos2 != prev_Pos2) {
@@ -71,19 +71,19 @@ void loop()
     prev_Pos2 = updatedPos2;
   }
 
-  counter -= 1;
-  if(counter==0) {
-    use_M1 = !use_M1;
-    counter = 2000;
-  }
+  // counter -= 1;
+  // if(counter==0) {
+  //   use_M1 = !use_M1;
+  //   counter = 2000;
+  // }
 
-  if(use_M1){
-    duty = 0.2;
-    duty2 = 0;
-  } else {
-    duty = 0;
-    duty2 = 0.2;
-  }
+  // if(use_M1){
+  //   duty = 0.2;
+  //   duty2 = 0;
+  // } else {
+  //   duty = 0;
+  //   duty2 = 0.2;
+  // }
   
   // Tp = rh*rp/rs*force;
   float force = -0.1;

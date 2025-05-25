@@ -5,7 +5,7 @@
 // Parameters that define what environment to render
 #define ENABLE_SEND_POS
 // #define ENABLE_VIRTUAL_WALL
-// #define ENABLE_FEEDBACK
+#define ENABLE_FEEDBACK
 
 // Includes
 #include <math.h>
@@ -103,7 +103,7 @@ void loop()
     }
   #endif
   
-  long updatedPos = linkEnc.read();
+  long updatedPos = -linkEnc.read();
   long updatedPos2 = pullEnc.read();
   
   // Link pos

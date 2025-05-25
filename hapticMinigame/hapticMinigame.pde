@@ -44,6 +44,9 @@ float rb_p;
 float wp_p;
 float hp_p;
 
+boolean collidedWithUser = false;
+float k = 60;
+
 float brickWidth = 0.01;
 float brickWidth_p;
 
@@ -54,8 +57,8 @@ Player usr;
 LeaderBoard ledBrd;
 
 boolean started = false;
-float mb = 1;
-float dxb = 0.05;
+float mb = 2;
+float dxb = 0.0;
 float dyb = 0.05;
 float dxb_prev = 0;
 float dyb_prev = 0;
@@ -85,10 +88,10 @@ void setup () {
   // List all the available serial ports
   //println(Serial.list());
   // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
-  //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
+  myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
 
   // A serialEvent() is generated when a newline character is received :
-  //myPort.bufferUntil('\n');
+  myPort.bufferUntil('\n');
   background(0);      // set inital background:
   yp_p = height*9/10;
   yp_init = p2r(yp_p,"y");
@@ -111,6 +114,8 @@ void setup () {
   nameInput.H = 35;
   nameInput.X = (width-nameInput.W)/2;
   nameInput.Y = buttonY_p-nameInput.H-30;
+  nameInput.Text = "Unknown Player";
+  nameInput.TextLength = 14;
   
   usr = new Player("Testing123", xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
   brks = new Bricks(xMin+brickWidth, xMax-brickWidth, yMax/8+brickWidth/2, yMax*7/10-brickWidth/2, 0.2, brickWidth);
@@ -193,14 +198,15 @@ void draw () {
     
     fill(83, 86, 90, 150);
     stroke(140, 21, 21);  // Cardinal red
-    int h_temp = ledBrd.getNum()*45 + 60;
+    int h_temp = ledBrd.getNum()*24 + 60;
     rect(870,40,300,h_temp,30,30,30,30);
     fill(255);
     textSize(30);
     textAlign(CENTER, CENTER);
     text("Leaderboard", 870, 40, 300, 45);
+    textSize(21);
     textAlign(LEFT, TOP);
-    text(ledBrd.getStr(true), 900, 93, 270, h_temp-60);
+    text(ledBrd.getStr(true), 900, 93, 270, h_temp);
     
     stroke(0);
     if (overButton()) {
@@ -210,8 +216,9 @@ void draw () {
     }
     rect(buttonX_p,buttonY_p,buttonW_p,buttonH_p,10,10,10,10);
     fill(255);
+    textSize(30);
     textAlign(CENTER, CENTER);
-    text("Start",buttonX_p,buttonY_p,buttonW_p,buttonH_p);
+    text("PLAY",buttonX_p,buttonY_p,buttonW_p,buttonH_p);
     
     textAlign(CENTER, CENTER);
     nameInput.DRAW();
@@ -260,13 +267,24 @@ void updateDynamics(){
   time_prev = System.nanoTime();
   float[] force = new float[] {0,0};
   
-  
+  int hitU = usr.checkCollision(xb,yb,rb);
+  if(hitU==0){
+    collidedWithUser = false;
+  } else if(!collidedWithUser){
+    collidedWithUser = true;
+    usr.setProxy(xb,yb);
+  }
+  if(collidedWithUser){
+    float[] proxyPos = usr.getBallProxy();
+    force[0] += k*(proxyPos[0]-xb);
+    force[1] += k*(proxyPos[1]-yb);
+  }
+  //reflectFromHit(hitU, 1);
   
   dxb += (force[0]/mb + ddxb_prev)/2*dt;
   dyb += (force[1]/mb + ddyb_prev)/2*dt;
-  
-  int hitU = usr.checkCollision(xb,yb,rb);
-  reflectFromHit(hitU, 1);
+  dxb = clip(dxb,0.1);
+  dyb = clip(dyb,0.1);
   
   int[] hitB = brks.checkCollision(xb,yb,rb);
   if(reflectFromHit(hitB[0], 1)){
@@ -306,6 +324,12 @@ float p2r(float value, String dir){
   }
 }
 
+void giveFeedback(float force, float Tp2){
+  myPort.write(Float.toString(force));
+  myPort.write(",");
+  myPort.write(Tp2+"\n");
+}
+
 int checkWallColllision(){
   if(xb+rb>=xMax) {return (int) 3;}
   if(xb-rb<=xMin) {return (int) 1;}
@@ -322,13 +346,19 @@ void gameOver(){
   saveStrings(ledBrdFilename, list);
   xb = 0;
   yb = yp_init-0.03;
-  dxb = 0.05;
+  dxb = 0.0;
   dyb = 0.05;
   dxb_prev = 0;
   dyb_prev = 0;
   ddxb_prev = 0;
   ddyb_prev = 0;
   eff = 0;
+}
+
+float clip(float value, float max){
+  if(value>max) return max;
+  if(value<-max) return -max;
+  return value;
 }
 
 boolean reflectFromHit(int hit, int dir){

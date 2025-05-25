@@ -63,6 +63,7 @@ public class Bricks {
                 }
             }
         }
+        if(locations.isEmpty()) reGenerate();
     }
     public ArrayList<float[]> getLocations(){
         return this.locations;

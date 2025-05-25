@@ -9,6 +9,8 @@ public class Player {
     float thd = 0;
     float wp;
     float hp;
+    float relProxyX;
+    float relProxyY;
     String name;
 
     public Player(String name, float xp, float yp, float thd, float wp, float hp, float xMin, float xMax){
@@ -20,6 +22,8 @@ public class Player {
         this.xMin = xMin;
         this.xMax = xMax;
         this.name = name;
+        this.relProxyX = this.xp;
+        this.relProxyY = this.yp;
     }
     public void reset(){
         score = 0;
@@ -46,7 +50,20 @@ public class Player {
         return thd;
     }
     public int checkCollision(float xb, float yb, float rb){
-        return circleRect(xb, yb, rb, this.xp-this.wp/2, this.yp-this.hp/2, this.wp, this.hp);
+        float[] relativePos = new float[] {xb-this.xp, yb-this.yp};
+        relativePos[0] = (float) (Math.cos(this.thd)*relativePos[0] + Math.sin(this.thd)*relativePos[1]);
+        relativePos[1] = (float) (-Math.sin(this.thd)*relativePos[0] + Math.cos(this.thd)*relativePos[1]);
+        return circleRect(relativePos[0], relativePos[1], rb, -this.wp/2, -this.hp/2, this.wp, this.hp);
+    }
+    public void setProxy(float xb, float yb){
+        float[] relativePos = new float[] {xb-this.xp, yb-this.yp};
+        this.relProxyX = (float) (Math.cos(this.thd)*relativePos[0] + Math.sin(this.thd)*relativePos[1]);
+        this.relProxyY = (float) (-Math.sin(this.thd)*relativePos[0] + Math.cos(this.thd)*relativePos[1]);
+    }
+    public float[] getBallProxy(){
+        float tempX = (float) (Math.cos(this.thd)*relProxyX - Math.sin(this.thd)*relProxyY);
+        float tempY = (float) (Math.sin(this.thd)*relProxyX + Math.cos(this.thd)*relProxyY);
+        return new float[] {tempX, tempY};
     }
 
     private int circleRect(float cx, float cy, float radius, float rx, float ry, float rw, float rh) {
