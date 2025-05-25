@@ -147,7 +147,7 @@ void loop()
   #endif
 
   // Calculate the motor torque: Tp = ?
-  Tp = L0/(1+cos(ths))*force;
+  Tp = L0/(1+cos(ths))*force/0.04*0.005;
 
   
   //*************************************************************
