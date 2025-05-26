@@ -31,8 +31,8 @@ float yb;
 float rb = 0.005;
 float wp = 0.05;
 float hp = 0.016;
-float xMin = -0.1-wp/2;
-float xMax = 0.1+wp/2;
+float xMin = -0.1;
+float xMax = 0.1;
 float yMin = 0;
 float yMax = xMax-xMin;
 
@@ -45,7 +45,7 @@ float wp_p;
 float hp_p;
 
 boolean collidedWithUser = false;
-float k = 60;
+float k = 300;
 
 float brickWidth = 0.01;
 float brickWidth_p;
@@ -88,10 +88,10 @@ void setup () {
   // List all the available serial ports
   //println(Serial.list());
   // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
-  myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
+  //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
 
   // A serialEvent() is generated when a newline character is received :
-  myPort.bufferUntil('\n');
+  //myPort.bufferUntil('\n');
   background(0);      // set inital background:
   yp_p = height*9/10;
   yp_init = p2r(yp_p,"y");
@@ -165,8 +165,14 @@ void draw () {
   }
   xp_p = r2p(usr.getX(),"x");
   brickLocations = brks.getLocations();
-  xb_p = r2p(xb,"x");
-  yb_p = r2p(yb,"y");
+  if(!collidedWithUser){
+    xb_p = r2p(xb,"x");
+    yb_p = r2p(yb,"y");
+  } else {
+    float[] proxyPos = usr.getBallProxy();
+    xb_p = r2p(proxyPos[0],"x");
+    yb_p = r2p(proxyPos[1],"y");
+  }
   
   background(0);
   stroke(127, 34, 255);     //stroke color
@@ -267,17 +273,21 @@ void updateDynamics(){
   time_prev = System.nanoTime();
   float[] force = new float[] {0,0};
   
-  int hitU = usr.checkCollision(xb,yb,rb);
-  if(hitU==0){
-    collidedWithUser = false;
-  } else if(!collidedWithUser){
-    collidedWithUser = true;
-    usr.setProxy(xb,yb);
+  if(!collidedWithUser){
+    int hitU = usr.checkCollision(xb,yb,rb);
+    if(hitU!=0){
+      collidedWithUser = true;
+      usr.setProxy(xb,yb);
+    }
   }
   if(collidedWithUser){
     float[] proxyPos = usr.getBallProxy();
-    force[0] += k*(proxyPos[0]-xb);
-    force[1] += k*(proxyPos[1]-yb);
+    float[] usrForce = usr.getForce(xb,yb,rb,k);
+    force[0] += usrForce[0];
+    force[1] += usrForce[1];
+    if(usr.checkCollision(xb,yb,rb)==0 && usr.checkCollision(xb,yb,rb*1.2)==usr.checkCollision(proxyPos[0],proxyPos[1],rb)){
+      collidedWithUser = false;
+    }
   }
   //reflectFromHit(hitU, 1);
   
@@ -294,10 +304,12 @@ void updateDynamics(){
   
   int hitW = checkWallColllision();
   if(hitW==2){
-    gameOver();
+    if(!collidedWithUser){
+      gameOver();
+    }
+  }else{
+    reflectFromHit(hitW, -1);
   }
-  reflectFromHit(hitW, -1);
-  
   
   xb += (dxb + dxb_prev)/2*dt;
   yb += (dyb + dyb_prev)/2*dt;
