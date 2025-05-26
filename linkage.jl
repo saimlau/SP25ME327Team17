@@ -23,7 +23,7 @@ function get_x(θs)
         yp = Rs*cos(θs)+Ls*cos(θ2)+Ls*cos(θ5)
         return (xp, yp, θ1, θ2, θ3, θ4, θ5, θ6)
     catch
-        return (Inf,Inf,NaN,NaN,NaN,NaN,NaN,NaN)
+        return (NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN)
     end
 end
 
@@ -63,17 +63,22 @@ xlabel!("θₛ");
 ylabel!("xₚ");
 savefig("simplifiedPosCalComparsion.png")
 
-
-# anim = @animate for i ∈ eachindex(θss)
-#     plot(sol[:,2],sol[:,1], aspect_ratio = 1, framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12,
-#                linewidth=2, label="trajectory")
-#     scatter!([sol[i,2]],[sol[i,1]], color="red", label="paddle")
-#     title!("θs=$(round(rad2deg(θss[i]),sigdigits=3)) deg, (x,y)=($(round((sol[i,1]),sigdigits=3)), $(round((sol[i,2]),sigdigits=3)))")
-#     xlabel!("y")
-#     ylabel!("x")
-# end
-# gif(anim, "linkageTraj.gif", fps = 24)
-# plot(θss, sol[:,1])
+anim = @animate for i ∈ eachindex(θss)
+    xp, yp, θ1, θ2, θ3, θ4, θ5, θ6 = sol[i,:];
+    θ_test = θss[i];
+    tempX = [0,Rs*cos(θ_test),Rs*cos(θ_test)+Ls*cos(θ2),Rs*cos(θ_test)+Ls*cos(θ4),Rs*cos(θ_test)+Ls*cos(θ2)+Ls*cos(θ5),-Lb];
+    tempY = [0,Rs*sin(θ_test),Rs*sin(θ_test)+Ls*sin(θ2),Rs*sin(θ_test)+Ls*sin(θ4),Rs*sin(θ_test)+Ls*sin(θ2)+Ls*sin(θ5),0];
+    idx = [1,2,3,5,4,6,3,2,4];
+    plot(tempX[idx], tempY[idx], aspect_ratio=1, linewidth=2, framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12, label="links", legend=:outertopright);
+    scatter!(tempX,tempY, markerstyle=".", markersize=9, label="joints")
+    title!("θs=$(round(rad2deg(θss[i]),sigdigits=3)) deg, (xp,yp)=($(round((sol[i,1]),sigdigits=3)), $(round((sol[i,2]),sigdigits=3)))")
+    xlabel!("y")
+    ylabel!("x")
+    xlims!(-0.045,0.12)
+    ylims!(-0.13,0.13)
+end
+gif(anim, "linkageTraj.gif", fps = 24)
+plot(θss, sol[:,1], legend=:outerright)
 
 plot(sol[:,2],sol[:,1], aspect_ratio = 1, framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12,
                linewidth=2, label="trajectory")
@@ -102,15 +107,3 @@ title!("θs = $(round(θ_test,sigdigits=3)), xp = $(round(T_sol[1,1],sigdigits=3
 savefig("forceComparsion.png")
 plot!()
 
-
-
-xp, yp, θ1, θ2, θ3, θ4, θ5, θ6 = get_x(θ_test);
-tempX = [0,Rs*cos(θ_test),Rs*cos(θ_test)+Ls*cos(θ2),Rs*cos(θ_test)+Ls*cos(θ4),Rs*cos(θ_test)+Ls*cos(θ2)+Ls*cos(θ5),-Lb];
-tempY = [0,Rs*sin(θ_test),Rs*sin(θ_test)+Ls*sin(θ2),Rs*sin(θ_test)+Ls*sin(θ4),Rs*sin(θ_test)+Ls*sin(θ2)+Ls*sin(θ5),0];
-idx = [1,2,3,5,4,6,3,2,4];
-plot(tempX[idx], tempY[idx], aspect_ratio=1, linewidth=2, framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12, label="links", legend=:topleft);
-scatter!(tempX,tempY, markerstyle=".", markersize=9, label="joints")
-title!("θs = $(round(θ_test,sigdigits=3)), xp = $(round(T_sol[1,1],sigdigits=3))")
-xlabel!("yp")
-ylabel!("xp")
-savefig("verifyLocations.png")
