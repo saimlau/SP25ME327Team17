@@ -3,9 +3,11 @@
 // Code updated by Cara Nunez 4.17.19
 //--------------------------------------------------------------------------
 // Parameters that define what environment to render
-#define ENABLE_SEND_POS
+// #define ENABLE_SEND_POS
 // #define ENABLE_VIRTUAL_WALL
-#define ENABLE_FEEDBACK
+// #define ENABLE_FEEDBACK
+// #define ENABLE_DAMPING
+#define ENABLE_VIBRATION
 
 // Includes
 #include <math.h>
@@ -39,7 +41,7 @@ double dxp_filt_prev2;
 double thp = 0;           // angle of paddle [rad]
 
 // Dynamics variables
-double Rcap = 0.005;
+double Rcap = 0.0045;
 double Rp = 0.025;
 double Rs = 0.04;
 double L0 = 0.14;
@@ -55,12 +57,15 @@ int count_down = 0;
 // Force output variables
 double force = 0;           // force at the handle
 double Tp = 0;              // torque of the motor pulley
+double Tp_inter = 0;
 double Tp2 = 0;
 double duty = 0;            // duty cylce (between 0 and 255)
 unsigned int output = 0;    // output command to the motor
 double duty2 = 0;           // duty cylce (between 0 and 255)
 unsigned int output2 = 0;    // output command to the motor
 
+int vibrate = 0;
+int vibSign = 1;
 
 // --------------------------------------------------------------
 // Setup function -- NO NEED TO EDIT
@@ -99,7 +104,7 @@ void loop()
       sD.trim();
       int i = sD.indexOf(",");
       force = sD.substring(0,i).toDouble();
-      Tp2 = sD.substring(i+1).toDouble();
+      Tp_inter = sD.substring(i+1).toDouble();
     }
   #endif
   
@@ -128,7 +133,8 @@ void loop()
 
   // Drum pos
   double ths2 = (updatedPos2*2*PI/2000);
-  thp = Rcap/Rp*(ths2-xp/Rcap);
+  thp = Rcap/Rp*(ths2-xp*184.9796);
+  // thp = ths2;
   
   #ifdef ENABLE_SEND_POS
     Serial.print(xp, 5);
@@ -138,17 +144,50 @@ void loop()
 
   #ifdef ENABLE_VIRTUAL_WALL
     double k_wall = 300;
-    double x_wall = 0.05;
+    double x_wall = 0.02;
     if(xp>=x_wall){
-      force = -k_wall*(xp-x_wall);
+      force = k_wall*(xp-x_wall);
     } else {
       force = 0;
     }
   #endif
 
+  #ifdef ENABLE_DAMPING
+    double b = 0.5;
+    double x_wall = 0.02;
+    if(xp>=x_wall){
+      Tp_inter = b*dxp_filt;
+    } else Tp_inter = 0;
+  #endif
+
+  #ifdef ENABLE_VIBRATION
+    if(Serial.available()){
+      String sD = Serial.readString();
+      sD.trim();
+      vibrate = sD.toFloat();
+    }
+    double b = 3;
+    double x_wall = 0.02;
+    if(vibrate==1){
+      // if (dxp_filt>=0) Tp_inter = b*0.1;
+      // else Tp_inter = -b*0.02;
+      if (!count_down){
+        count_down = 100;
+      }
+      if(count_down%25==0){
+        vibSign = -vibSign;
+      }
+      Tp_inter = b*0.006*vibSign;
+      count_down -= 1;
+    } else {
+      Tp_inter = 0;
+      count_down = 0;
+    }
+  #endif
+
   // Calculate the motor torque: Tp = ?
   Tp = L0/(1+cos(ths))*force/Rs*Rcap;
-  Tp2 = Tp2/Rp*Rcap;
+  Tp2 = Tp_inter/Rp*Rcap;
 
   
   //*************************************************************
@@ -170,6 +209,8 @@ void loop()
   // Compute the duty cycle required to generate Tp (torque at the motor pulley)
   duty = sqrt(abs(Tp)/0.04526300208292487);
   duty2 = sqrt(abs(Tp2)/0.04526300208292487);
+  // Serial.println(force);
+  // Serial.println(Tp2);
 
   // Make sure the duty cycle is between 0 and 100%
   if (duty > 1) {            

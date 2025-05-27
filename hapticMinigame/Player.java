@@ -1,5 +1,7 @@
 package team17Pkg;
 
+import processing.serial.*;
+
 public class Player {
     float xp;
     float yp;
@@ -81,7 +83,7 @@ public class Player {
     public float[] getBallProxy(){
         return bframe2wframe(new float[] {relProxyX, relProxyY});
     }
-    public float[] getForce(float xb, float yb, float rb,float k){
+    public float[] getForce(float xb, float yb, float rb,float k, Serial thePort){
         float[] relativePos = wframe2bframe(new float[] {xb,yb});
         int dir = circleRect(relProxyX, relProxyY, rb, -this.wp/2, -this.hp/2, this.wp, this.hp);
         float[] relForce = new float[] {0,0};
@@ -95,6 +97,8 @@ public class Player {
             relForce[1] += -k*dy;
         }
         float[] temp = bframe2wframe(relForce);
+        // thePort.write((this.xp-temp[0])+","+(relForce[0]*relProxyY+relForce[1]*relProxyX));
+        // thePort.write("1\n");
         return new float[] {temp[0]-this.xp, temp[1]-this.yp};
     }
 

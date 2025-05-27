@@ -18,6 +18,7 @@ import java.util.Map.Entry;
 import team17Pkg.*;
 
 Serial myPort;        // The serial port
+Serial myPortM; 
 
 //*****************************************************************
 //****************** Initialize Variables (START) *****************
@@ -59,7 +60,7 @@ LeaderBoard ledBrd;
 boolean started = false;
 float mb = 2;
 float dxb = 0.0;
-float dyb = 0.05;
+float dyb = 0.01;
 float dxb_prev = 0;
 float dyb_prev = 0;
 float ddxb_prev = 0;
@@ -74,6 +75,7 @@ int buttonW_p;
 int buttonH_p;
 
 TEXTBOX nameInput;
+boolean debug = true;
 //*****************************************************************
 //******************* Initialize Variables (END) ******************
 //*****************************************************************
@@ -88,15 +90,17 @@ void setup () {
   // List all the available serial ports
   //println(Serial.list());
   // Check the listed serial ports in your machine and use the correct index number in Serial.list()[].
-  //myPort = new Serial(this, Serial.list()[0], 115200);  //make sure baud rate matches Arduino
+  myPort = new Serial(this, Serial.list()[1], 115200);  //make sure baud rate matches Arduino
+  myPortM = new Serial(this, Serial.list()[0], 115200);
 
   // A serialEvent() is generated when a newline character is received :
-  //myPort.bufferUntil('\n');
+  myPort.bufferUntil('\n');
   background(0);      // set inital background:
   yp_p = height*9/10;
   yp_init = p2r(yp_p,"y");
   
-  yb = yp_init-0.03;
+  yb = yp_init-0.029;
+  //yb = yp_init;
   rb_p = r2p(rb, "y");
   
   wp_p = r2p(wp,"y");
@@ -131,7 +135,7 @@ void startGame(){
   if(name.equals("")){
     name = "Unknown";
   }
-  usr = new Player(name, xp_init, yp_init, thd_init, wp, hp, xMin, xMax);
+  usr = new Player(name, xp_init, yp_init, usr.getTh(), wp, hp, xMin, xMax);
   time_prev = System.nanoTime();
   started = true;
 }
@@ -147,6 +151,20 @@ void mousePressed() {
 void keyPressed(){
   if(nameInput.KEYPRESSED(key, keyCode)){
     startGame();
+  }
+  // fordebugging
+  if(debug){
+    if (key == CODED) {
+      if (keyCode == UP) {
+        usr.updateTh(usr.getTh()+0.03);
+      } else if (keyCode == DOWN) {
+        usr.updateTh(usr.getTh()-0.03);
+      } else if (keyCode == RIGHT) {
+        usr.updateX(usr.getX()+0.01);
+      } else if (keyCode == LEFT) {
+        usr.updateX(usr.getX()-0.01);
+      }
+    }
   }
 }
 
@@ -188,6 +206,11 @@ void draw () {
   fill(144, 238, 144);
   stroke(27, 252, 6);
   ellipse(xb_p, yb_p, 2*rb_p, 2*rb_p);
+  if(debug){
+    fill(255,0,0);
+    stroke(255,0,0);
+    ellipse(r2p(xb,"x"), r2p(yb,"y"), 2*rb_p, 2*rb_p);
+  }
   
   fill(255);
   stroke(255,92,0);
@@ -272,21 +295,34 @@ void updateDynamics(){
   double dt = (System.nanoTime()-time_prev)/1000000000.0;
   time_prev = System.nanoTime();
   float[] force = new float[] {0,0};
+  dt = 0.01;  //0.016
   
-  if(!collidedWithUser){
-    int hitU = usr.checkCollision(xb,yb,rb);
-    if(hitU!=0){
-      collidedWithUser = true;
-      usr.setProxy(xb,yb);
+  int hitU = usr.checkCollision(xb,yb,rb);
+  //println(hitU);
+  if(hitU!=0){
+    if(!collidedWithUser){
+      usr.setProxy(xb,yb,rb);
     }
+    collidedWithUser = true;
+    myPortM.write("1");
+  } else{
+    myPortM.write("0");
   }
+  //println(collidedWithUser);
+  //println(hitU);
   if(collidedWithUser){
     float[] proxyPos = usr.getBallProxy();
-    float[] usrForce = usr.getForce(xb,yb,rb,k);
-    force[0] += usrForce[0];
-    force[1] += usrForce[1];
-    if(usr.checkCollision(xb,yb,rb)==0 && usr.checkCollision(xb,yb,rb*1.2)==usr.checkCollision(proxyPos[0],proxyPos[1],rb)){
+    int temp = usr.checkCollision(xb,yb,rb);
+    int temp2 = usr.checkCollision(xb,yb,rb*1.1);
+    int temp3 = usr.checkCollision(proxyPos[0],proxyPos[1],rb);
+    if(temp==0){
+      myPortM.write("0");
       collidedWithUser = false;
+    } else {
+      float[] usrForce = usr.getForce(xb,yb,rb,k,myPortM);
+      force[0] += usrForce[0];
+      force[1] += usrForce[1];
+      //println(usrForce[0]);
     }
   }
   //reflectFromHit(hitU, 1);
@@ -356,10 +392,11 @@ void gameOver(){
   ledBrd.recordScore(usr.getName(), usr.getScore());
   String[] list = split(ledBrd.getStr(false), '\n');
   saveStrings(ledBrdFilename, list);
+  usr.updateX(xp_init);
   xb = 0;
   yb = yp_init-0.03;
   dxb = 0.0;
-  dyb = 0.05;
+  dyb = 0.01;
   dxb_prev = 0;
   dyb_prev = 0;
   ddxb_prev = 0;
