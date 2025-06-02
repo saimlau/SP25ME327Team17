@@ -18,7 +18,7 @@ function get_x(θs)
         d2 = Ls*sqrt(2)*sqrt(1-cos(θ4-θ2))
         θd2 = atan(sin(θ4)-sin(θ2),cos(θ4)-cos(θ2))
         θ5 = acos(d2/2/Ls) + θd2
-        θ6 = asin(9Ls*sin(θ5)-d2*sin(θd2))/Ls
+        θ6 = asin(Ls*sin(θ5)-d2*sin(θd2))/Ls
         xp = Rs*sin(θs)+Ls*sin(θ2)+Ls*sin(θ5)
         yp = Rs*cos(θs)+Ls*cos(θ2)+Ls*cos(θ5)
         return (xp, yp, θ1, θ2, θ3, θ4, θ5, θ6)
