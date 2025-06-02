@@ -1,15 +1,11 @@
 //--------------------------------------------------------------------------
-// Code to test basic Hapkit functionality (sensing and force output)
-// Code updated by Cara Nunez 4.17.19
+// Code for SP25 ME 327 Team 17 Final Project Hapkit boards
+// Code updated by Saimai Lau 6.2.25
 //--------------------------------------------------------------------------
 // Parameters that define what environment to render
-// #define ENABLE_SEND_POS
-// #define ENABLE_VIRTUAL_WALL
-// #define ENABLE_FEEDBACK
-// #define ENABLE_DAMPING
-#define ENABLE_VIBRATION
-# define ENABLE_FEEDBACK_AND_VIBRATION
-// #define GET_LOCATION
+// #define ENABLE_SEND_POS     // For the board reading the encoders
+#define ENABLE_FEEDBACK     // For the board controlling the motors
+#define ENABLE_VIBRATION    // For the board controlling the motors
 
 // Includes
 #include <math.h>
@@ -102,45 +98,7 @@ void setup()
 // --------------------------------------------------------------
 void loop()
 {
-  #ifdef GET_LOCATION
-    if(Serial.available()){
-      String sD = Serial.readString();
-      sD.trim();
-      int i = sD.indexOf(",");
-      xp = sD.substring(0,i).toDouble();
-      vibrate = sD.substring(i+1).toFloat();
-    }
-    double b = 3;
-    if(vibrate==1){
-      if (!count_down){
-        count_down = 300;
-      }
-      if(count_down%25==0){
-        vibSign = -vibSign;
-      }
-      Tp_inter = b*0.006*vibSign;
-      count_down -= 1;
-    } else {
-      Tp_inter = 0;
-      count_down = 0;
-    }
-    float k = 10;
-    force = k*xp;
-  #endif
-
   #ifdef ENABLE_FEEDBACK
-    if(Serial.available()){
-      String sD = Serial.readString();
-      sD.trim();
-      if(sD.substring(0,1)!="V"){
-        int i = sD.indexOf(",");
-        force = -sD.substring(0,i).toDouble();
-        Tp_inter = sD.substring(i+1).toDouble();
-      }
-    }
-  #endif
-
-  #ifdef ENABLE_FEEDBACK_AND_VIBRATION
     if(Serial.available()){
       String sD = Serial.readString();
       sD.trim();
@@ -187,24 +145,6 @@ void loop()
     Serial.print(xp, 5);
     Serial.print(",");
     Serial.println(thp,5);
-  #endif
-
-  #ifdef ENABLE_VIRTUAL_WALL
-    double k_wall = 300;
-    double x_wall = 0.02;
-    if(xp>=x_wall){
-      force = k_wall*(xp-x_wall);
-    } else {
-      force = 0;
-    }
-  #endif
-
-  #ifdef ENABLE_DAMPING
-    double b = 0.5;
-    double x_wall = 0.02;
-    if(xp>=x_wall){
-      Tp_inter = b*dxp_filt;
-    } else Tp_inter = 0;
   #endif
 
   #ifdef ENABLE_VIBRATION
