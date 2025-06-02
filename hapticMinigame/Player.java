@@ -97,9 +97,39 @@ public class Player {
             relForce[1] += -k*dy;
         }
         float[] temp = bframe2wframe(relForce);
-        // thePort.write((this.xp-temp[0])+","+(relForce[0]*relProxyY+relForce[1]*relProxyX));
+        // thePort.write((-this.xp-temp[0])+","+(relForce[0]*relProxyY+relForce[1]*relProxyX)+"\n");
+        // thePort.write((-this.xp-temp[0])+",0.0\n");
         // thePort.write("1\n");
         return new float[] {temp[0]-this.xp, temp[1]-this.yp};
+    }
+    public float[] reflectFromHit(int hit, int dir, float dxb, float dyb){
+        float[] dpb = wframe2bframe(new float[] {dxb+xp, dyb+yp});
+        switch(hit) {
+            case 1:
+                if (dpb[0]*Math.signum(dir)>0){
+                    dpb[0] = -dpb[0];
+                }
+                break;
+            case 2:
+                if (dpb[1]*Math.signum(dir)<0) {
+                    dpb[1] = -dpb[1];
+                }
+                break;
+            case 3:
+                if (dpb[0]*Math.signum(dir)<0){
+                    dpb[0] = -dpb[0];
+                }
+                break;
+            case 4:
+                if (dpb[1]*Math.signum(dir)>0) {
+                    dpb[1] = -dpb[1];
+                }
+                break;
+            default:
+            break;
+        }
+        float[] out = bframe2wframe(dpb);
+        return new float[] {out[0]-xp, out[1]-yp};
     }
 
     // Helper functions

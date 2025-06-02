@@ -8,6 +8,8 @@
 // #define ENABLE_FEEDBACK
 // #define ENABLE_DAMPING
 #define ENABLE_VIBRATION
+# define ENABLE_FEEDBACK_AND_VIBRATION
+// #define GET_LOCATION
 
 // Includes
 #include <math.h>
@@ -26,6 +28,8 @@ Encoder linkEnc(encoderPinA, encoderPinB);
 Encoder pullEnc(encoderPin2A, encoderPin2B);
 long prev_Pos_link = -999;
 long prev_Pos_pull = -999;
+
+int vibroMPin = 9;
 
 // Kinematics variables
 double xp = 0;           // position of the paddle [m]
@@ -49,8 +53,6 @@ double L0 = 0.14;
 double Lb = 0.04;
 double Ls = 0.064;
 double Ll = 0.124;
-
-
 
 int count_down = 0;
 
@@ -90,6 +92,8 @@ void setup()
   digitalWrite(dirPin, LOW);  // set direction
   analogWrite(pwmPin2, 0);     // set to not be spinning (0/255)
   digitalWrite(dirPin2, LOW);  // set direction
+
+  pinMode(vibroMPin, OUTPUT);
 }
 
 
@@ -98,22 +102,65 @@ void setup()
 // --------------------------------------------------------------
 void loop()
 {
-  #ifdef ENABLE_FEEDBACK
+  #ifdef GET_LOCATION
     if(Serial.available()){
       String sD = Serial.readString();
       sD.trim();
       int i = sD.indexOf(",");
-      force = sD.substring(0,i).toDouble();
-      Tp_inter = sD.substring(i+1).toDouble();
+      xp = sD.substring(0,i).toDouble();
+      vibrate = sD.substring(i+1).toFloat();
+    }
+    double b = 3;
+    if(vibrate==1){
+      if (!count_down){
+        count_down = 300;
+      }
+      if(count_down%25==0){
+        vibSign = -vibSign;
+      }
+      Tp_inter = b*0.006*vibSign;
+      count_down -= 1;
+    } else {
+      Tp_inter = 0;
+      count_down = 0;
+    }
+    float k = 10;
+    force = k*xp;
+  #endif
+
+  #ifdef ENABLE_FEEDBACK
+    if(Serial.available()){
+      String sD = Serial.readString();
+      sD.trim();
+      if(sD.substring(0,1)!="V"){
+        int i = sD.indexOf(",");
+        force = -sD.substring(0,i).toDouble();
+        Tp_inter = sD.substring(i+1).toDouble();
+      }
+    }
+  #endif
+
+  #ifdef ENABLE_FEEDBACK_AND_VIBRATION
+    if(Serial.available()){
+      String sD = Serial.readString();
+      sD.trim();
+      if(sD.substring(0,1)!="V"){
+        int i = sD.indexOf(",");
+        force = -sD.substring(0,i).toDouble();
+        Tp_inter = sD.substring(i+1).toDouble();
+      } else if(sD.substring(0,1)=="V"){
+        vibrate = sD.substring(1).toFloat();
+      }
     }
   #endif
   
   long updatedPos = -linkEnc.read();
   long updatedPos2 = pullEnc.read();
   
-  // Link pos
-  double ths = (updatedPos*2*PI/2000)*Rcap/Rs;
-  xp = L0*sin(ths)/(1+cos(ths));
+  // // Link pos
+  // double ths = (updatedPos*2*PI/2000)*Rcap/Rs;
+  double ths = asin(xp/sqrt(pow(L0,2)+pow(xp,2)))+atan(xp/L0);
+  // xp = L0*sin(ths)/(1+cos(ths));
 
   // Calculate velocity with loop time estimation
   dxp = (double)(xp - xp_prev) / 0.001;
@@ -161,11 +208,11 @@ void loop()
   #endif
 
   #ifdef ENABLE_VIBRATION
-    if(Serial.available()){
-      String sD = Serial.readString();
-      sD.trim();
-      vibrate = sD.toFloat();
-    }
+    // if(Serial.available()){
+    //   String sD = Serial.readString();
+    //   sD.trim();
+    //   vibrate = sD.toFloat();
+    // }
     double b = 3;
     double x_wall = 0.02;
     if(vibrate==1){
@@ -178,9 +225,12 @@ void loop()
         vibSign = -vibSign;
       }
       Tp_inter = b*0.006*vibSign;
+      analogWrite(vibroMPin, 150);
+      // delay(1000);
       count_down -= 1;
     } else {
       Tp_inter = 0;
+      analogWrite(vibroMPin, 0);
       count_down = 0;
     }
   #endif

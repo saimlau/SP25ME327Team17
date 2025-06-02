@@ -46,7 +46,7 @@ float wp_p;
 float hp_p;
 
 boolean collidedWithUser = false;
-float k = 300;
+float k = 600;
 
 float brickWidth = 0.01;
 float brickWidth_p;
@@ -60,12 +60,13 @@ LeaderBoard ledBrd;
 boolean started = false;
 float mb = 2;
 float dxb = 0.0;
-float dyb = 0.01;
+float dyb = 0.06;
 float dxb_prev = 0;
 float dyb_prev = 0;
 float ddxb_prev = 0;
 float ddyb_prev = 0;
 int eff = 0;
+int eff_prev = 0;
 long time_prev;
 String ledBrdFilename = "ledbrd.txt";
 
@@ -75,7 +76,8 @@ int buttonW_p;
 int buttonH_p;
 
 TEXTBOX nameInput;
-boolean debug = true;
+boolean debug = false;
+long count = 0;
 //*****************************************************************
 //******************* Initialize Variables (END) ******************
 //*****************************************************************
@@ -190,6 +192,8 @@ void draw () {
     float[] proxyPos = usr.getBallProxy();
     xb_p = r2p(proxyPos[0],"x");
     yb_p = r2p(proxyPos[1],"y");
+    //xb_p = r2p(xb,"x");
+    //yb_p = r2p(yb,"y");
   }
   
   background(0);
@@ -256,6 +260,34 @@ void draw () {
   fill(255);
   textAlign(LEFT,CENTER);
   text("Score: "+usr.getScore(), 21, 40, 300, 30);  // Text wraps within text box
+  
+  if(started){
+    String msg;
+    if(eff>=2){
+      textSize(30);
+      fill(255);
+      textAlign(LEFT,CENTER);
+      text("Haptic Effect: Spring", 840, 40, 300, 30);
+      if(count%30==0){
+        msg = -30*usr.getX()+",0\n";
+        myPortM.write(msg);
+        //print(msg);
+        //delay(200);
+        //myPortM.clear();
+      }
+    }else{
+      if(count%30==0 && eff_prev!=eff){
+        msg = "0,0\n";
+        myPortM.write(msg);
+        eff_prev = eff;
+      }
+      text("Haptic Effect: N/A", 840, 40, 300, 30);
+    }
+  }
+  count++;
+  if (count>=3e6-1){
+    count = 0;
+  }
 }
 
 void serialEvent (Serial myPort) {  
@@ -302,11 +334,12 @@ void updateDynamics(){
   if(hitU!=0){
     if(!collidedWithUser){
       usr.setProxy(xb,yb,rb);
+      myPortM.write("V1\n");
+      //println("Sending 1 to serial port");
     }
     collidedWithUser = true;
-    myPortM.write("1");
   } else{
-    myPortM.write("0");
+    //myPortM.write("0.0,0.0\n");
   }
   //println(collidedWithUser);
   //println(hitU);
@@ -316,7 +349,9 @@ void updateDynamics(){
     int temp2 = usr.checkCollision(xb,yb,rb*1.1);
     int temp3 = usr.checkCollision(proxyPos[0],proxyPos[1],rb);
     if(temp==0){
-      myPortM.write("0");
+      myPortM.write("V0\n");
+      //myPortM.write("0.0,0.0\n");
+      //println("Sending 0 to serial port");
       collidedWithUser = false;
     } else {
       float[] usrForce = usr.getForce(xb,yb,rb,k,myPortM);
@@ -325,7 +360,20 @@ void updateDynamics(){
       //println(usrForce[0]);
     }
   }
-  //reflectFromHit(hitU, 1);
+  //if(hitU==0 && collidedWithUser){
+  //  delay(120);
+  //  myPortM.write("0\n");
+  //  collidedWithUser = false;
+  //  println("Sending 0 to serial port");
+  //} else if(hitU!=0 && !collidedWithUser){
+  //  usr.setProxy(xb,yb,rb);
+  //  myPortM.write("1\n");
+  //  collidedWithUser = true;
+  //  println("Sending 1 to serial port");
+  //}
+  //float[] temp = usr.reflectFromHit(hitU, 1, dxb, dyb);
+  //dxb = temp[0];
+  //dyb = temp[1];
   
   dxb += (force[0]/mb + ddxb_prev)/2*dt;
   dyb += (force[1]/mb + ddyb_prev)/2*dt;
@@ -396,12 +444,14 @@ void gameOver(){
   xb = 0;
   yb = yp_init-0.03;
   dxb = 0.0;
-  dyb = 0.01;
+  dyb = 0.06;
   dxb_prev = 0;
   dyb_prev = 0;
   ddxb_prev = 0;
   ddyb_prev = 0;
   eff = 0;
+  myPortM.write("V0\n");
+  //myPortM.write("0.0,0.0\n");
 }
 
 float clip(float value, float max){

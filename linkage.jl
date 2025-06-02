@@ -54,13 +54,13 @@ sol = stack(temp)';
 
 sol_simp = get_x_linear.(θss);
 
-plot(θss, sol_simp, linewidth=2, linstyle="--")
+plot(θss, sol_simp, linewidth=2, linstyle="--", label="Simplified approximation")
 plot!(θss, sol[:,1], framestyle = :box, xguidefontsize=12, yguidefontsize=12,legendfontsize=12, ytickfontsize = 12, xtickfontsize = 12,
-                linewidth=2, label="trajectory")
+                linewidth=2, label="Analytical trajectory")
 xlims!(-0.1,6.5);
-ylims!(-0.15, 0.15);
-xlabel!("θₛ");
-ylabel!("xₚ");
+xlabel!("θₛ (rad)");
+ylabel!("xₚ (m)");
+ylims!(-0.15,0.15)
 savefig("simplifiedPosCalComparsion.png")
 
 anim = @animate for i ∈ eachindex(θss)
@@ -85,8 +85,8 @@ plot(sol[:,2],sol[:,1], aspect_ratio = 1, framestyle = :box, xguidefontsize=12, 
 
 
 θc = acos((Ll-Ls)^2/2/Lb^2-1);
-crit1 = get_x(θc-1e-12);
-crit2 = get_x(-θc+1e-12);
+crit1 = get_x(θc-1e-12)
+crit2 = get_x(-θc+1e-12)
 scatter!([crit1[2], crit2[2]],[crit1[1], crit2[1]], color="red", label="paddle")
 savefig("criticalPoints.png")
 
