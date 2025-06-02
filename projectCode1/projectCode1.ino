@@ -116,9 +116,9 @@ void loop()
   long updatedPos2 = pullEnc.read();
   
   // // Link pos
-  // double ths = (updatedPos*2*PI/2000)*Rcap/Rs;
-  double ths = asin(xp/sqrt(pow(L0,2)+pow(xp,2)))+atan(xp/L0);
-  // xp = L0*sin(ths)/(1+cos(ths));
+  double ths = (updatedPos*2*PI/2000)*Rcap/Rs;
+  // double ths = asin(xp/sqrt(pow(L0,2)+pow(xp,2)))+atan(xp/L0);
+  xp = L0*sin(ths)/(1+cos(ths));
 
   // Calculate velocity with loop time estimation
   dxp = (double)(xp - xp_prev) / 0.001;
